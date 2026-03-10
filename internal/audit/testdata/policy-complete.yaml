@@ -1,0 +1,32 @@
+apiVersion: audit.k8s.io/v1
+kind: Policy
+rules:
+  - level: RequestResponse
+    resources:
+      - group: ""
+        resources: ["secrets", "configmaps"]
+  - level: Request
+    resources:
+      - group: ""
+        resources: ["pods/exec", "pods/attach"]
+    verbs: ["create", "get"]
+  - level: RequestResponse
+    userGroups: ["system:anonymous"]
+  - level: RequestResponse
+    resources:
+      - group: "rbac.authorization.k8s.io"
+        resources: ["clusterrolebindings", "clusterroles"]
+    verbs: ["create", "update", "patch", "delete"]
+  - level: RequestResponse
+    resources:
+      - group: "admissionregistration.k8s.io"
+        resources: ["mutatingwebhookconfigurations"]
+    verbs: ["create", "update", "patch", "delete"]
+  # Skip leader election noise
+  - level: None
+    resources:
+      - group: "coordination.k8s.io"
+        resources: ["leases"]
+    verbs: ["get", "update", "patch"]
+  # Default catch-all
+  - level: Metadata

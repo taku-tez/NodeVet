@@ -1,0 +1,21 @@
+apiVersion: kubelet.config.k8s.io/v1beta1
+kind: KubeletConfiguration
+authentication:
+  anonymous:
+    enabled: false
+  x509:
+    clientCAFile: /etc/kubernetes/pki/ca.crt
+authorization:
+  mode: Webhook
+tlsCertFile: /etc/kubernetes/pki/kubelet.crt
+tlsPrivateKeyFile: /etc/kubernetes/pki/kubelet.key
+tlsCipherSuites:
+  - TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256
+  - TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+rotateCertificates: true
+serverTLSBootstrap: true
+protectKernelDefaults: true
+makeIPTablesUtilChains: true
+eventRecordQPS: 5
+streamingConnectionIdleTimeout: 5m0s
+readOnlyPort: 0

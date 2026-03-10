@@ -1,0 +1,23 @@
+version = 2
+root = "/var/lib/containerd"
+
+[plugins]
+  [plugins."io.containerd.grpc.v1.cri"]
+    enable_unprivileged_ports = false
+    enable_unprivileged_icmp = false
+    restrict_oci_annotations = true
+
+    [plugins."io.containerd.grpc.v1.cri".containerd]
+      snapshotter = "overlayfs"
+
+      [plugins."io.containerd.grpc.v1.cri".containerd.runtimes]
+        [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runc]
+          runtime_type = "io.containerd.runc.v2"
+          [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runc.options]
+            SystemdCgroup = true
+            SeccompProfile = ""
+
+    [plugins."io.containerd.grpc.v1.cri".registry]
+      [plugins."io.containerd.grpc.v1.cri".registry.mirrors]
+        [plugins."io.containerd.grpc.v1.cri".registry.mirrors."docker.io"]
+          endpoint = ["https://mirror.example.com"]
