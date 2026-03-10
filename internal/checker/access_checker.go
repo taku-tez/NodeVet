@@ -20,7 +20,7 @@ func (c *AccessChecker) Run(info *access.ClusterAccessInfo) *rules.AccessResult 
 		} else {
 			for _, f := range findings {
 				result.Findings = append(result.Findings, f)
-				if f.Rule.Severity == rules.SeverityError {
+				if rules.SeverityIsHighOrAbove(f.Rule.Severity) {
 					result.Errors++
 				} else {
 					result.Warnings++

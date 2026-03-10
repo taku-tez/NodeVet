@@ -11,7 +11,7 @@ import (
 var ruleFalcoDeployed = EBPFRule{
 	ID:          "NV6001",
 	Title:       "Falco: DaemonSet not deployed",
-	Severity:    SeverityWarn,
+	Severity:    SeverityMedium,
 	Description: "Falco is not deployed in the cluster. Without Falco, runtime security events (unexpected processes, file access, network connections) will not be detected.",
 	Remediation: "Deploy Falco as a DaemonSet using the official Helm chart: helm repo add falcosecurity https://falcosecurity.github.io/charts && helm install falco falcosecurity/falco -n falco --create-namespace",
 	Check: func(info *ebpf.EBPFClusterInfo) *EBPFFinding {
@@ -29,7 +29,7 @@ var ruleFalcoDeployed = EBPFRule{
 var ruleFalcoCriticalRules = EBPFRule{
 	ID:          "NV6002",
 	Title:       "Falco: critical rules disabled via override",
-	Severity:    SeverityError,
+	Severity:    SeverityHigh,
 	Description: "One or more Falco critical rules are disabled via 'override: enabled: false'. This creates blind spots in runtime threat detection.",
 	Remediation: "Remove 'override: enabled: false' from critical rules in your Falco rules ConfigMap. If a rule is too noisy, tune it with 'condition' overrides rather than disabling entirely.",
 	Check: func(info *ebpf.EBPFClusterInfo) *EBPFFinding {
@@ -54,7 +54,7 @@ var ruleFalcoCriticalRules = EBPFRule{
 var ruleFalcoOutput = EBPFRule{
 	ID:          "NV6003",
 	Title:       "Falco: no external output (SIEM/webhook) configured",
-	Severity:    SeverityWarn,
+	Severity:    SeverityMedium,
 	Description: "Falco is deployed but no external output channel (HTTP webhook, Falcosidekick, gRPC) is configured. Alerts will only go to stdout and may not reach your SIEM.",
 	Remediation: "Configure an HTTP webhook output or deploy Falcosidekick to forward Falco alerts to your SIEM/alerting system. Set http_output.enabled=true in the Falco configuration.",
 	Check: func(info *ebpf.EBPFClusterInfo) *EBPFFinding {

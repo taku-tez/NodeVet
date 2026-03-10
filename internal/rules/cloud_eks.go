@@ -7,7 +7,7 @@ import "github.com/NodeVet/nodevet/internal/node"
 var ruleEKSIMDSv2 = NodeRule{
 	ID:          "NV4101",
 	Title:       "EKS: IMDSv2 should be enforced (hop-limit=1)",
-	Severity:    SeverityError,
+	Severity:    SeverityHigh,
 	Platform:    node.PlatformEKS,
 	Description: "EKS IMDSv2 enforcement cannot be confirmed from node labels. IMDSv2 with hop-limit=1 prevents containers from accessing the EC2 instance metadata endpoint.",
 	Remediation: "Enforce IMDSv2 in the EKS managed node group launch template: set HttpPutResponseHopLimit=1 and HttpTokens=required. Or use eksctl: eksctl set nodegroup --cluster <cluster> --name <ng> --managed metadata-api-token=required",
@@ -30,7 +30,7 @@ var ruleEKSIMDSv2 = NodeRule{
 var ruleEKSEBSEncryption = NodeRule{
 	ID:          "NV4102",
 	Title:       "EKS: EBS volumes should be encrypted",
-	Severity:    SeverityWarn,
+	Severity:    SeverityMedium,
 	Platform:    node.PlatformEKS,
 	Description: "EKS node EBS volume encryption cannot be confirmed from node labels. Unencrypted node volumes may expose data at rest.",
 	Remediation: "Enable EBS encryption by default in the AWS account, or specify encrypted volumes in the EKS managed node group launch template.",
@@ -52,7 +52,7 @@ var ruleEKSEBSEncryption = NodeRule{
 var ruleEKSAMIAutoUpdate = NodeRule{
 	ID:          "NV4103",
 	Title:       "EKS: Managed Node Group should have Auto-Update enabled",
-	Severity:    SeverityWarn,
+	Severity:    SeverityMedium,
 	Platform:    node.PlatformEKS,
 	Description: "EKS managed node group auto-update policy cannot be confirmed from node labels. Nodes should be kept up-to-date with the latest Amazon EKS optimized AMI.",
 	Remediation: "Configure the managed node group update policy to DEFAULT or FORCE_NEW_UPDATE: aws eks update-nodegroup-config --cluster-name <cluster> --nodegroup-name <ng> --update-config maxUnavailable=1",

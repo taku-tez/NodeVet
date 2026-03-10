@@ -4,9 +4,17 @@ package rules
 type Severity string
 
 const (
-	SeverityError Severity = "ERROR"
-	SeverityWarn  Severity = "WARN"
+	SeverityCritical Severity = "CRITICAL"
+	SeverityHigh     Severity = "HIGH"
+	SeverityMedium   Severity = "MEDIUM"
+	SeverityLow      Severity = "LOW"
 )
+
+// SeverityIsHighOrAbove returns true for CRITICAL and HIGH severities,
+// used to classify findings as errors vs warnings in summaries.
+func SeverityIsHighOrAbove(s Severity) bool {
+	return s == SeverityCritical || s == SeverityHigh
+}
 
 // Rule describes a single security check.
 type Rule struct {

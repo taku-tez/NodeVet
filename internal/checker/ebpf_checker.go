@@ -19,7 +19,7 @@ func (c *EBPFChecker) Run(info *ebpf.EBPFClusterInfo) *rules.EBPFResult {
 			result.Passed++
 		} else {
 			result.Findings = append(result.Findings, f)
-			if f.Rule.Severity == rules.SeverityError {
+			if rules.SeverityIsHighOrAbove(f.Rule.Severity) {
 				result.Errors++
 			} else {
 				result.Warnings++

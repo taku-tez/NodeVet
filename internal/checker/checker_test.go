@@ -31,14 +31,14 @@ func TestCheckerAllInsecure(t *testing.T) {
 	}
 	errorRuleIDs := make(map[string]bool)
 	for _, f := range result.Findings {
-		if f.Rule.Severity == rules.SeverityError {
+		if rules.SeverityIsHighOrAbove(f.Rule.Severity) {
 			errorRuleIDs[f.Rule.ID] = true
 		}
 	}
 	mustFire := []string{"NV1001", "NV1002", "NV1003", "NV1101", "NV1102"}
 	for _, id := range mustFire {
 		if !errorRuleIDs[id] {
-			t.Errorf("expected ERROR rule %s to fire, but it did not", id)
+			t.Errorf("expected HIGH/CRITICAL rule %s to fire, but it did not", id)
 		}
 	}
 }

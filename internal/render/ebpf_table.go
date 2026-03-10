@@ -40,13 +40,7 @@ func (r *ebpfTableRenderer) RenderEBPF(result *rules.EBPFResult) error {
 		msg := wrapString(f.Message, 60)
 
 		if isTerminal {
-			if f.Rule.Severity == rules.SeverityError {
-				id = errorColor.Sprint(id)
-				sev = errorColor.Sprint(sev)
-			} else {
-				id = warnColor.Sprint(id)
-				sev = warnColor.Sprint(sev)
-			}
+			id, sev = colorBySeverity(f.Rule.Severity, id, sev)
 		}
 
 		if err := table.Append([]string{id, sev, actual, msg}); err != nil {
@@ -58,13 +52,13 @@ func (r *ebpfTableRenderer) RenderEBPF(result *rules.EBPFResult) error {
 		return fmt.Errorf("table render: %w", err)
 	}
 
-	summary := fmt.Sprintf("\nSummary: %d ERROR, %d WARN, %d passed\n",
+	summary := fmt.Sprintf("\nSummary: %d critical/high, %d medium/low, %d passed\n",
 		result.Errors, result.Warnings, result.Passed)
 	if isTerminal {
 		if result.Errors > 0 {
-			summary = errorColor.Sprint(summary)
+			summary = criticalColor.Sprint(summary)
 		} else if result.Warnings > 0 {
-			summary = warnColor.Sprint(summary)
+			summary = mediumColor.Sprint(summary)
 		} else {
 			summary = passColor.Sprint(summary)
 		}

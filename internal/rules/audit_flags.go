@@ -12,7 +12,7 @@ import (
 var ruleAuditLogPath = Rule{
 	ID:          "NV5001",
 	Title:       "kube-apiserver: audit-log-path must be configured",
-	Severity:    SeverityError,
+	Severity:    SeverityHigh,
 	Description: "kube-apiserver audit-log-path is not set. Audit logging is disabled; security-relevant API events are not being recorded.",
 	Remediation: "Set --audit-log-path=/var/log/kubernetes/audit.log in kube-apiserver configuration.",
 	Check: func(values map[string]string) *Finding {
@@ -30,7 +30,7 @@ var ruleAuditLogPath = Rule{
 var ruleAuditLogMaxAge = Rule{
 	ID:          "NV5002",
 	Title:       "kube-apiserver: audit-log-maxage should be at least 30 days",
-	Severity:    SeverityWarn,
+	Severity:    SeverityMedium,
 	Description: "kube-apiserver audit-log-maxage is not set or is less than 30 days. Audit logs may be deleted before they can be reviewed.",
 	Remediation: "Set --audit-log-maxage=30 in kube-apiserver configuration. CIS Benchmark recommends >= 30 days.",
 	Check: func(values map[string]string) *Finding {
@@ -53,7 +53,7 @@ var ruleAuditLogMaxAge = Rule{
 var ruleAuditLogMaxBackup = Rule{
 	ID:          "NV5003",
 	Title:       "kube-apiserver: audit-log-maxbackup should be at least 10",
-	Severity:    SeverityWarn,
+	Severity:    SeverityMedium,
 	Description: "kube-apiserver audit-log-maxbackup is not set or is less than 10. Fewer retained log files reduces forensic visibility.",
 	Remediation: "Set --audit-log-maxbackup=10 in kube-apiserver configuration. CIS Benchmark recommends >= 10.",
 	Check: func(values map[string]string) *Finding {
@@ -76,7 +76,7 @@ var ruleAuditLogMaxBackup = Rule{
 var ruleAuditLogMaxSize = Rule{
 	ID:          "NV5004",
 	Title:       "kube-apiserver: audit-log-maxsize should be at least 100 MB",
-	Severity:    SeverityWarn,
+	Severity:    SeverityMedium,
 	Description: "kube-apiserver audit-log-maxsize is not set or is less than 100 MB. Log rotation may occur too frequently, risking log loss under high API traffic.",
 	Remediation: "Set --audit-log-maxsize=100 in kube-apiserver configuration. CIS Benchmark recommends >= 100 MB.",
 	Check: func(values map[string]string) *Finding {
@@ -99,7 +99,7 @@ var ruleAuditLogMaxSize = Rule{
 var ruleAuditPolicyFile = Rule{
 	ID:          "NV5005",
 	Title:       "kube-apiserver: audit-policy-file must be configured",
-	Severity:    SeverityError,
+	Severity:    SeverityHigh,
 	Description: "kube-apiserver audit-policy-file is not set. Without a policy file, all requests are logged at the Metadata level (or not at all), missing request/response bodies for critical operations.",
 	Remediation: "Create a comprehensive AuditPolicy YAML and set --audit-policy-file=/etc/kubernetes/audit-policy.yaml. Use 'nodevet audit --emit-policy' to generate a recommended policy.",
 	Check: func(values map[string]string) *Finding {
@@ -117,7 +117,7 @@ var ruleAuditPolicyFile = Rule{
 var ruleAuditWebhookConfig = Rule{
 	ID:          "NV5006",
 	Title:       "kube-apiserver: audit webhook for external log forwarding should be configured",
-	Severity:    SeverityWarn,
+	Severity:    SeverityMedium,
 	Description: "kube-apiserver audit-webhook-config-file is not set. Audit logs are only stored locally and may be lost if the node is compromised or disk fills up.",
 	Remediation: "Configure audit log forwarding to a SIEM or cloud logging service: --audit-webhook-config-file=/etc/kubernetes/audit-webhook.yaml. Supported backends: Cloud Logging, Datadog, Elastic, Fluentd.",
 	Check: func(values map[string]string) *Finding {

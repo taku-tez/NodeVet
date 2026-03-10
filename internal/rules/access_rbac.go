@@ -38,7 +38,7 @@ type AccessResult struct {
 var ruleRBACNodeProxy = AccessRule{
 	ID:          "NV3301",
 	Title:       "RBAC: nodes/proxy access allows kubectl debug on any node",
-	Severity:    SeverityError,
+	Severity:    SeverityHigh,
 	Description: "One or more ClusterRoleBindings grant 'nodes/proxy' access. This allows the subject to run kubectl debug/exec on any node in the cluster.",
 	Remediation: "Remove or scope the ClusterRole binding granting nodes/proxy. Restrict kubectl debug to cluster-admin only. Audit and remove unnecessary node-level access.",
 	Check: func(info *access.ClusterAccessInfo) []*AccessFinding {
@@ -63,7 +63,7 @@ var ruleRBACNodeProxy = AccessRule{
 var ruleRBACPodExec = AccessRule{
 	ID:          "NV3302",
 	Title:       "RBAC: broad pods/exec or pods/attach access detected",
-	Severity:    SeverityWarn,
+	Severity:    SeverityMedium,
 	Description: "One or more ClusterRoleBindings grant 'pods/exec' or 'pods/attach' at cluster scope. This allows arbitrary command execution in any pod.",
 	Remediation: "Scope pods/exec permissions to specific namespaces using RoleBindings instead of ClusterRoleBindings. Remove this permission from broad groups like 'system:authenticated'.",
 	Check: func(info *access.ClusterAccessInfo) []*AccessFinding {
@@ -92,7 +92,7 @@ var ruleRBACPodExec = AccessRule{
 var ruleHostPIDPods = AccessRule{
 	ID:          "NV3303",
 	Title:       "Privileged pods: hostPID/hostNetwork/hostIPC detected",
-	Severity:    SeverityError,
+	Severity:    SeverityHigh,
 	Description: "One or more pods use hostPID, hostNetwork, or hostIPC. These settings share the host's process/network/IPC namespace, enabling node escape attacks.",
 	Remediation: "Remove hostPID/hostNetwork/hostIPC from pod specs unless absolutely required (e.g. system DaemonSets). Use PodSecurity admission to enforce restrictions.",
 	Check: func(info *access.ClusterAccessInfo) []*AccessFinding {
@@ -126,7 +126,7 @@ var ruleHostPIDPods = AccessRule{
 var rulePrivilegedPods = AccessRule{
 	ID:          "NV3304",
 	Title:       "Privileged pods: privileged containers or sensitive hostPath mounts",
-	Severity:    SeverityError,
+	Severity:    SeverityHigh,
 	Description: "One or more pods run privileged containers or mount sensitive host paths (/etc, /var/run, /proc, etc.). These configurations allow full node filesystem access.",
 	Remediation: "Remove privileged:true from container SecurityContext. Replace sensitive hostPath mounts with emptyDir or persistent volumes. Use PodSecurity admission (Restricted policy).",
 	Check: func(info *access.ClusterAccessInfo) []*AccessFinding {

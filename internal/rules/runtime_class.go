@@ -36,7 +36,7 @@ type RuntimeClassResult struct {
 var ruleRuntimeClassSandboxed = RuntimeClassRule{
 	ID:          "NV2101",
 	Title:       "RuntimeClass: sandboxed runtime (gVisor/Kata) should be available",
-	Severity:    SeverityWarn,
+	Severity:    SeverityMedium,
 	Description: "No sandboxed RuntimeClass (gVisor, Kata Containers) is defined in the cluster. High-risk workloads cannot use hardware-level isolation.",
 	Remediation: "Install gVisor (runsc) or Kata Containers and create a RuntimeClass: kubectl apply -f runtimeclass-gvisor.yaml. See: https://gvisor.dev/docs/user_guide/containerd/",
 	Check: func(info *runtime.ClusterRuntimeInfo) *RuntimeClassFinding {
@@ -62,7 +62,7 @@ var ruleRuntimeClassSandboxed = RuntimeClassRule{
 var ruleRuntimeClassHandlerValid = RuntimeClassRule{
 	ID:          "NV2102",
 	Title:       "RuntimeClass: runtimeHandler must not be empty",
-	Severity:    SeverityError,
+	Severity:    SeverityHigh,
 	Description: "One or more RuntimeClass objects have an empty runtimeHandler. This may cause pods using the RuntimeClass to fail to schedule or use the default (potentially insecure) runtime.",
 	Remediation: "Ensure every RuntimeClass has a valid runtimeHandler that corresponds to a configured CRI runtime (e.g. 'runc', 'runsc', 'kata').",
 	Check: func(info *runtime.ClusterRuntimeInfo) *RuntimeClassFinding {

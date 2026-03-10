@@ -13,9 +13,11 @@ import (
 )
 
 var (
-	errorColor = color.New(color.FgRed, color.Bold)
-	warnColor  = color.New(color.FgYellow, color.Bold)
-	passColor  = color.New(color.FgGreen)
+	criticalColor = color.New(color.FgRed, color.Bold)
+	highColor     = color.New(color.FgRed)
+	mediumColor   = color.New(color.FgYellow, color.Bold)
+	lowColor      = color.New(color.FgCyan)
+	passColor     = color.New(color.FgGreen)
 )
 
 // TableRenderer renders findings as an ASCII table.
@@ -42,13 +44,7 @@ func (r *TableRenderer) Render(result *checker.Result) error {
 		remediation := wrapString(f.Rule.Remediation, 50)
 
 		if isTerminal {
-			if f.Rule.Severity == rules.SeverityError {
-				id = errorColor.Sprint(id)
-				sev = errorColor.Sprint(sev)
-			} else {
-				id = warnColor.Sprint(id)
-				sev = warnColor.Sprint(sev)
-			}
+			id, sev = colorBySeverity(f.Rule.Severity, id, sev)
 		}
 
 		if err := table.Append([]string{id, sev, msg, actual, remediation}); err != nil {
@@ -60,19 +56,33 @@ func (r *TableRenderer) Render(result *checker.Result) error {
 		return fmt.Errorf("table render: %w", err)
 	}
 
-	summary := fmt.Sprintf("\nSummary: %d ERROR, %d WARN, %d passed\n",
+	summary := fmt.Sprintf("\nSummary: %d critical/high, %d medium/low, %d passed\n",
 		result.Errors, result.Warnings, result.Passed)
 	if isTerminal {
 		if result.Errors > 0 {
-			summary = errorColor.Sprint(summary)
+			summary = criticalColor.Sprint(summary)
 		} else if result.Warnings > 0 {
-			summary = warnColor.Sprint(summary)
+			summary = mediumColor.Sprint(summary)
 		} else {
 			summary = passColor.Sprint(summary)
 		}
 	}
 	_, err := fmt.Fprint(r.w, summary)
 	return err
+}
+
+// colorBySeverity applies the appropriate color to id and sev strings.
+func colorBySeverity(sev rules.Severity, id, sevStr string) (string, string) {
+	switch sev {
+	case rules.SeverityCritical:
+		return criticalColor.Sprint(id), criticalColor.Sprint(sevStr)
+	case rules.SeverityHigh:
+		return highColor.Sprint(id), highColor.Sprint(sevStr)
+	case rules.SeverityMedium:
+		return mediumColor.Sprint(id), mediumColor.Sprint(sevStr)
+	default:
+		return lowColor.Sprint(id), lowColor.Sprint(sevStr)
+	}
 }
 
 func isTerminalOutput(w io.Writer) bool {

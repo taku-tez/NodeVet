@@ -39,7 +39,7 @@ func (c *Checker) Run() (*Result, error) {
 		f := c.Rules[i].Check(merged)
 		if f != nil {
 			result.Findings = append(result.Findings, f)
-			if f.Rule.Severity == rules.SeverityError {
+			if rules.SeverityIsHighOrAbove(f.Rule.Severity) {
 				result.Errors++
 			} else {
 				result.Warnings++

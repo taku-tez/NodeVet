@@ -17,7 +17,7 @@ func (c *RuntimeClassChecker) Run(info *runtime.ClusterRuntimeInfo) *rules.Runti
 		f := c.Rules[i].Check(info)
 		if f != nil {
 			result.Findings = append(result.Findings, f)
-			if f.Rule.Severity == rules.SeverityError {
+			if rules.SeverityIsHighOrAbove(f.Rule.Severity) {
 				result.Errors++
 			} else {
 				result.Warnings++

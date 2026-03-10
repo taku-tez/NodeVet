@@ -8,7 +8,7 @@ import "strings"
 var ruleContainerdUnprivilegedPorts = Rule{
 	ID:          "NV2001",
 	Title:       "containerd: enable_unprivileged_ports should be disabled",
-	Severity:    SeverityWarn,
+	Severity:    SeverityMedium,
 	Description: "containerd enable_unprivileged_ports=true allows containers to bind to privileged ports (<1024) without elevated capabilities.",
 	Remediation: "Set enable_unprivileged_ports = false under [plugins.\"io.containerd.grpc.v1.cri\"] in /etc/containerd/config.toml.",
 	Check: func(values map[string]string) *Finding {
@@ -26,7 +26,7 @@ var ruleContainerdUnprivilegedPorts = Rule{
 var ruleContainerdUnprivilegedICMP = Rule{
 	ID:          "NV2002",
 	Title:       "containerd: enable_unprivileged_icmp should be disabled",
-	Severity:    SeverityWarn,
+	Severity:    SeverityMedium,
 	Description: "containerd enable_unprivileged_icmp=true allows unprivileged containers to send ICMP packets, enabling potential network probing.",
 	Remediation: "Set enable_unprivileged_icmp = false under [plugins.\"io.containerd.grpc.v1.cri\"] in /etc/containerd/config.toml.",
 	Check: func(values map[string]string) *Finding {
@@ -44,7 +44,7 @@ var ruleContainerdUnprivilegedICMP = Rule{
 var ruleContainerdSnapshotter = Rule{
 	ID:          "NV2003",
 	Title:       "containerd: snapshotter should use a secure driver",
-	Severity:    SeverityWarn,
+	Severity:    SeverityMedium,
 	Description: "containerd snapshotter is not set or uses a non-standard driver. The recommended snapshotter is 'overlayfs'.",
 	Remediation: "Set snapshotter = \"overlayfs\" under [plugins.\"io.containerd.grpc.v1.cri\".containerd] in /etc/containerd/config.toml.",
 	Check: func(values map[string]string) *Finding {
@@ -65,7 +65,7 @@ var ruleContainerdSnapshotter = Rule{
 var ruleContainerdInsecureRegistryMirrors = Rule{
 	ID:          "NV2004",
 	Title:       "containerd: registry mirrors must use HTTPS endpoints",
-	Severity:    SeverityError,
+	Severity:    SeverityHigh,
 	Description: "containerd registry mirror configuration includes HTTP (non-TLS) endpoints. Images pulled from these mirrors are not protected against tampering.",
 	Remediation: "Replace http:// registry mirror endpoints with https:// in /etc/containerd/config.toml registry.mirrors configuration.",
 	Check: func(values map[string]string) *Finding {
@@ -84,7 +84,7 @@ var ruleContainerdInsecureRegistryMirrors = Rule{
 var ruleContainerdRestrictOCIAnnotations = Rule{
 	ID:          "NV2005",
 	Title:       "containerd: restrict_oci_annotations should be enabled",
-	Severity:    SeverityWarn,
+	Severity:    SeverityMedium,
 	Description: "containerd restrict_oci_annotations is not enabled. Containers may use OCI annotations to override security settings.",
 	Remediation: "Set restrict_oci_annotations = true under [plugins.\"io.containerd.grpc.v1.cri\"] in /etc/containerd/config.toml.",
 	Check: func(values map[string]string) *Finding {
@@ -107,7 +107,7 @@ var ruleContainerdRestrictOCIAnnotations = Rule{
 var ruleContainerdSeccompProfile = Rule{
 	ID:          "NV2006",
 	Title:       "containerd: default seccomp profile should be set",
-	Severity:    SeverityWarn,
+	Severity:    SeverityMedium,
 	Description: "containerd default runtime seccomp profile is not explicitly configured. Without a seccomp profile, containers run with the full host syscall table.",
 	Remediation: "Configure a default seccomp profile in the containerd runtime options, or ensure kubelet's --seccomp-default flag is set to use RuntimeDefault.",
 	Check: func(values map[string]string) *Finding {
@@ -127,7 +127,7 @@ var ruleContainerdSeccompProfile = Rule{
 var ruleContainerdRootless = Rule{
 	ID:          "NV2007",
 	Title:       "containerd: consider running in rootless mode",
-	Severity:    SeverityWarn,
+	Severity:    SeverityMedium,
 	Description: "containerd is running as root (default). Running containerd in rootless mode reduces the blast radius of container escapes.",
 	Remediation: "Consider deploying rootless containerd. See: https://github.com/containerd/containerd/blob/main/docs/rootless.md",
 	Check: func(values map[string]string) *Finding {

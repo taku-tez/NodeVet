@@ -7,7 +7,7 @@ import "github.com/NodeVet/nodevet/internal/node"
 var ruleAKSDefender = NodeRule{
 	ID:          "NV4201",
 	Title:       "AKS: Microsoft Defender for Containers should be enabled",
-	Severity:    SeverityWarn,
+	Severity:    SeverityMedium,
 	Platform:    node.PlatformAKS,
 	Description: "AKS Microsoft Defender for Containers profile annotation is not present. Defender provides runtime threat detection for Kubernetes workloads.",
 	Remediation: "Enable Microsoft Defender for Containers in Azure Security Center, or via: az aks update --resource-group <rg> --name <cluster> --enable-defender",
@@ -29,7 +29,7 @@ var ruleAKSDefender = NodeRule{
 var ruleAKSDiskEncryption = NodeRule{
 	ID:          "NV4202",
 	Title:       "AKS: OS Disk should use a Disk Encryption Set",
-	Severity:    SeverityWarn,
+	Severity:    SeverityMedium,
 	Platform:    node.PlatformAKS,
 	Description: "AKS node OS disk encryption set annotation is not present. Customer-managed key encryption for OS disks may not be configured.",
 	Remediation: "Configure a Disk Encryption Set for the AKS node pool: az aks create/update --disk-encryption-set-id <des-id> ...",

@@ -11,7 +11,7 @@ import (
 var ruleTetragonDeployed = EBPFRule{
 	ID:          "NV6101",
 	Title:       "Tetragon: not deployed or no TracingPolicies found",
-	Severity:    SeverityWarn,
+	Severity:    SeverityMedium,
 	Description: "Tetragon is not deployed or has no TracingPolicy resources. Without TracingPolicies, eBPF-level kernel tracing is not active.",
 	Remediation: "Deploy Tetragon via Helm: helm install tetragon cilium/tetragon -n kube-system. Then apply TracingPolicy CRs to define which syscalls and kernel functions to trace.",
 	Check: func(info *ebpf.EBPFClusterInfo) *EBPFFinding {
@@ -35,7 +35,7 @@ var ruleTetragonDeployed = EBPFRule{
 var ruleTetragonPrivilegedOps = EBPFRule{
 	ID:          "NV6102",
 	Title:       "Tetragon: no TracingPolicy for privileged operations",
-	Severity:    SeverityWarn,
+	Severity:    SeverityMedium,
 	Description: "No Tetragon TracingPolicy is configured to trace privileged operations (setuid, execve, capability changes). Privilege escalation at kernel level will not be detected.",
 	Remediation: "Apply a TracingPolicy that covers sys_enter_setuid, capability changes, and execve syscalls. Use the Tetragon example policies from the official documentation.",
 	Check: func(info *ebpf.EBPFClusterInfo) *EBPFFinding {

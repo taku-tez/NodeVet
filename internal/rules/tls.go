@@ -19,7 +19,7 @@ var safeCipherSuites = map[string]bool{
 var ruleTLSCertFile = Rule{
 	ID:          "NV1101",
 	Title:       "tls-cert-file must be configured",
-	Severity:    SeverityError,
+	Severity:    SeverityHigh,
 	Description: "kubelet TLS certificate file is not configured. The kubelet API server is running without TLS.",
 	Remediation: "Set --tls-cert-file=<path> in kubelet configuration. In KubeletConfiguration YAML: tlsCertFile: /etc/kubernetes/pki/kubelet.crt",
 	Check: func(values map[string]string) *Finding {
@@ -37,7 +37,7 @@ var ruleTLSCertFile = Rule{
 var ruleTLSPrivateKeyFile = Rule{
 	ID:          "NV1102",
 	Title:       "tls-private-key-file must be configured",
-	Severity:    SeverityError,
+	Severity:    SeverityHigh,
 	Description: "kubelet TLS private key file is not configured. The kubelet API server is running without TLS.",
 	Remediation: "Set --tls-private-key-file=<path> in kubelet configuration. In KubeletConfiguration YAML: tlsPrivateKeyFile: /etc/kubernetes/pki/kubelet.key",
 	Check: func(values map[string]string) *Finding {
@@ -55,7 +55,7 @@ var ruleTLSPrivateKeyFile = Rule{
 var ruleTLSCipherSuites = Rule{
 	ID:          "NV1103",
 	Title:       "tls-cipher-suites should use secure ciphers only",
-	Severity:    SeverityWarn,
+	Severity:    SeverityMedium,
 	Description: "kubelet TLS cipher suites are not explicitly configured, or include weak ciphers.",
 	Remediation: "Set --tls-cipher-suites to a safe list: TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,...",
 	Check: func(values map[string]string) *Finding {
@@ -87,7 +87,7 @@ var ruleTLSCipherSuites = Rule{
 var ruleRotateCertificates = Rule{
 	ID:          "NV1104",
 	Title:       "rotate-certificates should be enabled",
-	Severity:    SeverityWarn,
+	Severity:    SeverityMedium,
 	Description: "kubelet client certificate rotation is disabled. Certificates must be rotated manually.",
 	Remediation: "Set --rotate-certificates=true in kubelet configuration. In KubeletConfiguration YAML: rotateCertificates: true",
 	Check: func(values map[string]string) *Finding {
@@ -109,7 +109,7 @@ var ruleRotateCertificates = Rule{
 var ruleRotateServerCertificates = Rule{
 	ID:          "NV1105",
 	Title:       "rotate-server-certificates should be enabled",
-	Severity:    SeverityWarn,
+	Severity:    SeverityMedium,
 	Description: "kubelet server certificate rotation is disabled. Server certificates must be rotated manually.",
 	Remediation: "Set --rotate-server-certificates=true in kubelet configuration. In KubeletConfiguration YAML: serverTLSBootstrap: true",
 	Check: func(values map[string]string) *Finding {

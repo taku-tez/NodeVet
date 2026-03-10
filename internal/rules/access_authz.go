@@ -10,7 +10,7 @@ import "strings"
 var ruleAPIServerNodeAuthorizer = Rule{
 	ID:          "NV3101",
 	Title:       "kube-apiserver: Node Authorizer must be enabled",
-	Severity:    SeverityError,
+	Severity:    SeverityHigh,
 	Description: "kube-apiserver authorization-mode does not include 'Node'. Without the Node Authorizer, kubelets can read any secret in the cluster, not just those for their own pods.",
 	Remediation: "Add 'Node' to --authorization-mode in kube-apiserver configuration: --authorization-mode=Node,RBAC",
 	Check: func(values map[string]string) *Finding {
@@ -37,7 +37,7 @@ var ruleAPIServerNodeAuthorizer = Rule{
 var ruleAPIServerNodeRestriction = Rule{
 	ID:          "NV3102",
 	Title:       "kube-apiserver: NodeRestriction admission plugin must be enabled",
-	Severity:    SeverityError,
+	Severity:    SeverityHigh,
 	Description: "kube-apiserver NodeRestriction admission plugin is not enabled. Kubelets can modify any node or pod object, not just their own.",
 	Remediation: "Add 'NodeRestriction' to --enable-admission-plugins in kube-apiserver configuration.",
 	Check: func(values map[string]string) *Finding {

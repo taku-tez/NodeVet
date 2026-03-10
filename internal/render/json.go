@@ -3,7 +3,6 @@ package render
 import (
 	"encoding/json"
 	"io"
-	"strings"
 
 	"github.com/NodeVet/nodevet/internal/checker"
 	"github.com/NodeVet/nodevet/internal/rules"
@@ -53,7 +52,7 @@ func WriteCheckerJSON(w io.Writer, result *checker.Result) error {
 		Findings: make([]jsonFinding, 0, len(result.Findings)),
 	}
 	for _, f := range result.Findings {
-		sev := strings.ToLower(string(f.Rule.Severity))
+		sev := string(f.Rule.Severity)
 		out.Findings = append(out.Findings, jsonFinding{
 			RuleID:      f.Rule.ID,
 			Severity:    sev,
@@ -78,7 +77,7 @@ func WriteNodeJSON(w io.Writer, result *rules.NodeResult) error {
 		Findings: make([]jsonNodeFinding, 0, len(result.Findings)),
 	}
 	for _, f := range result.Findings {
-		sev := strings.ToLower(string(f.Rule.Severity))
+		sev := string(f.Rule.Severity)
 		out.Findings = append(out.Findings, jsonNodeFinding{
 			RuleID:      f.Rule.ID,
 			Severity:    sev,

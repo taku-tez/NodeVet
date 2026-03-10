@@ -6,7 +6,7 @@ import "strings"
 var ruleProtectKernelDefaults = Rule{
 	ID:          "NV1201",
 	Title:       "protect-kernel-defaults should be enabled",
-	Severity:    SeverityWarn,
+	Severity:    SeverityMedium,
 	Description: "kubelet protect-kernel-defaults is disabled. Containers may modify kernel parameters.",
 	Remediation: "Set --protect-kernel-defaults=true in kubelet configuration. In KubeletConfiguration YAML: protectKernelDefaults: true",
 	Check: func(values map[string]string) *Finding {
@@ -28,7 +28,7 @@ var ruleProtectKernelDefaults = Rule{
 var ruleMakeIPTablesUtilChains = Rule{
 	ID:          "NV1202",
 	Title:       "make-iptables-util-chains should be enabled",
-	Severity:    SeverityWarn,
+	Severity:    SeverityMedium,
 	Description: "kubelet make-iptables-util-chains is disabled. iptables utility chains may conflict with host rules.",
 	Remediation: "Set --make-iptables-util-chains=true in kubelet configuration. In KubeletConfiguration YAML: makeIPTablesUtilChains: true",
 	Check: func(values map[string]string) *Finding {
@@ -49,7 +49,7 @@ var ruleMakeIPTablesUtilChains = Rule{
 var ruleEventQPS = Rule{
 	ID:          "NV1203",
 	Title:       "event-qps should not be 0",
-	Severity:    SeverityWarn,
+	Severity:    SeverityMedium,
 	Description: "kubelet event-qps is set to 0, which disables rate limiting on event generation. This can be exploited for DoS attacks.",
 	Remediation: "Set --event-qps=5 (or a positive value) in kubelet configuration. In KubeletConfiguration YAML: eventRecordQPS: 5",
 	Check: func(values map[string]string) *Finding {
@@ -68,7 +68,7 @@ var ruleEventQPS = Rule{
 var ruleStreamingConnectionIdleTimeout = Rule{
 	ID:          "NV1204",
 	Title:       "streaming-connection-idle-timeout should not be 0",
-	Severity:    SeverityWarn,
+	Severity:    SeverityMedium,
 	Description: "kubelet streaming-connection-idle-timeout is not set or 0. exec/attach streams never time out.",
 	Remediation: "Set --streaming-connection-idle-timeout=5m in kubelet configuration. In KubeletConfiguration YAML: streamingConnectionIdleTimeout: 5m0s",
 	Check: func(values map[string]string) *Finding {

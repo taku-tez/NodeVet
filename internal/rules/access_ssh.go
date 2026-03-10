@@ -8,7 +8,7 @@ import "github.com/NodeVet/nodevet/internal/node"
 var ruleGKEOSLogin = NodeRule{
 	ID:          "NV3201",
 	Title:       "GKE: OS Login should be enabled",
-	Severity:    SeverityWarn,
+	Severity:    SeverityMedium,
 	Platform:    node.PlatformGKE,
 	Description: "GKE OS Login is not enabled on this node. Without OS Login, SSH access uses project-wide SSH keys, which are harder to audit and revoke.",
 	Remediation: "Enable OS Login on the GKE node pool: gcloud compute project-info add-metadata --metadata enable-oslogin=TRUE. Or set the label on the node pool.",
@@ -37,7 +37,7 @@ var ruleGKEOSLogin = NodeRule{
 var ruleGKEDirectSSH = NodeRule{
 	ID:          "NV3202",
 	Title:       "GKE: direct SSH access (0.0.0.0/0) should be restricted",
-	Severity:    SeverityWarn,
+	Severity:    SeverityMedium,
 	Platform:    node.PlatformGKE,
 	Description: "GKE node does not show evidence of IAP-tunneled SSH access. Direct SSH access from the internet exposes nodes to brute-force and exploitation.",
 	Remediation: "Restrict SSH firewall rules to internal ranges only and use IAP for SSH access: gcloud compute firewall-rules update <rule> --source-ranges 35.235.240.0/20",

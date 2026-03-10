@@ -36,7 +36,7 @@ type AuditPolicyResult struct {
 var ruleAuditSecrets = AuditPolicyRule{
 	ID:          "NV5101",
 	Title:       "AuditPolicy: Secrets access must be logged at RequestResponse level",
-	Severity:    SeverityError,
+	Severity:    SeverityHigh,
 	Description: "The AuditPolicy does not log Secret reads/writes at RequestResponse level. Credential access will not be captured in audit logs.",
 	Remediation: "Add a rule before any catch-all: level: RequestResponse, resources: [{group: \"\", resources: [\"secrets\"]}]",
 	Check: func(policy *audit.Policy) *AuditPolicyFinding {
@@ -62,7 +62,7 @@ var ruleAuditSecrets = AuditPolicyRule{
 var ruleAuditPodExec = AuditPolicyRule{
 	ID:          "NV5102",
 	Title:       "AuditPolicy: pods/exec and pods/attach must be logged",
-	Severity:    SeverityError,
+	Severity:    SeverityHigh,
 	Description: "The AuditPolicy does not log pod exec/attach requests. Interactive sessions inside containers will not appear in audit logs.",
 	Remediation: "Add a rule: level: Request, resources: [{group: \"\", resources: [\"pods/exec\", \"pods/attach\"]}], verbs: [\"create\", \"get\"]",
 	Check: func(policy *audit.Policy) *AuditPolicyFinding {
@@ -83,7 +83,7 @@ var ruleAuditPodExec = AuditPolicyRule{
 var ruleAuditAnonymous = AuditPolicyRule{
 	ID:          "NV5103",
 	Title:       "AuditPolicy: system:anonymous actions must be logged",
-	Severity:    SeverityError,
+	Severity:    SeverityHigh,
 	Description: "The AuditPolicy does not log actions by system:anonymous. Unauthenticated probing of the API server will not appear in audit logs.",
 	Remediation: "Add a rule: level: RequestResponse, userGroups: [\"system:anonymous\"]",
 	Check: func(policy *audit.Policy) *AuditPolicyFinding {
@@ -104,7 +104,7 @@ var ruleAuditAnonymous = AuditPolicyRule{
 var ruleAuditCatchAll = AuditPolicyRule{
 	ID:          "NV5104",
 	Title:       "AuditPolicy: catch-all rule must not be level:None",
-	Severity:    SeverityError,
+	Severity:    SeverityHigh,
 	Description: "The AuditPolicy catch-all rule (empty matcher) is set to level:None. Most API operations will not be logged.",
 	Remediation: "Change the catch-all rule to level: Metadata to ensure at least basic audit metadata is captured for all requests.",
 	Check: func(policy *audit.Policy) *AuditPolicyFinding {
@@ -126,7 +126,7 @@ var ruleAuditCatchAll = AuditPolicyRule{
 var ruleAuditRBACMutations = AuditPolicyRule{
 	ID:          "NV5105",
 	Title:       "AuditPolicy: RBAC mutations should be logged at RequestResponse level",
-	Severity:    SeverityWarn,
+	Severity:    SeverityMedium,
 	Description: "The AuditPolicy does not log RBAC ClusterRole/RoleBinding changes at RequestResponse level. Privilege escalation attempts may not be fully captured.",
 	Remediation: "Add a rule: level: RequestResponse, resources: [{group: \"rbac.authorization.k8s.io\", resources: [\"clusterroles\", \"clusterrolebindings\"]}], verbs: [\"create\", \"update\", \"patch\", \"delete\"]",
 	Check: func(policy *audit.Policy) *AuditPolicyFinding {
@@ -151,7 +151,7 @@ var ruleAuditRBACMutations = AuditPolicyRule{
 var ruleAuditWebhookMutations = AuditPolicyRule{
 	ID:          "NV5106",
 	Title:       "AuditPolicy: webhook configuration changes should be logged",
-	Severity:    SeverityWarn,
+	Severity:    SeverityMedium,
 	Description: "The AuditPolicy does not log changes to MutatingWebhookConfiguration at Request level or above. Admission webhook tampering may go undetected.",
 	Remediation: "Add a rule: level: RequestResponse, resources: [{group: \"admissionregistration.k8s.io\", resources: [\"mutatingwebhookconfigurations\"]}], verbs: [\"create\", \"update\", \"patch\", \"delete\"]",
 	Check: func(policy *audit.Policy) *AuditPolicyFinding {

@@ -6,7 +6,7 @@ import "strings"
 var ruleAnonymousAuth = Rule{
 	ID:          "NV1001",
 	Title:       "anonymous-auth must be disabled",
-	Severity:    SeverityError,
+	Severity:    SeverityHigh,
 	Description: "kubelet anonymous authentication is enabled (default: true). Unauthenticated requests to the kubelet API are allowed.",
 	Remediation: "Set --anonymous-auth=false in kubelet configuration. In KubeletConfiguration YAML: authentication.anonymous.enabled: false",
 	Check: func(values map[string]string) *Finding {
@@ -29,7 +29,7 @@ var ruleAnonymousAuth = Rule{
 var ruleAuthorizationMode = Rule{
 	ID:          "NV1002",
 	Title:       "authorization-mode must not be AlwaysAllow",
-	Severity:    SeverityError,
+	Severity:    SeverityHigh,
 	Description: "kubelet authorization mode is AlwaysAllow or not set. All requests are authorized without any access control.",
 	Remediation: "Set --authorization-mode=Webhook in kubelet configuration. In KubeletConfiguration YAML: authorization.mode: Webhook",
 	Check: func(values map[string]string) *Finding {
@@ -52,7 +52,7 @@ var ruleAuthorizationMode = Rule{
 var ruleClientCAFile = Rule{
 	ID:          "NV1003",
 	Title:       "client-ca-file must be configured",
-	Severity:    SeverityError,
+	Severity:    SeverityHigh,
 	Description: "kubelet client CA file is not configured. Client certificate authentication is disabled.",
 	Remediation: "Set --client-ca-file=<path-to-ca.crt> in kubelet configuration. In KubeletConfiguration YAML: authentication.x509.clientCAFile: /etc/kubernetes/pki/ca.crt",
 	Check: func(values map[string]string) *Finding {
@@ -70,7 +70,7 @@ var ruleClientCAFile = Rule{
 var ruleReadOnlyPort = Rule{
 	ID:          "NV1004",
 	Title:       "read-only-port should be disabled",
-	Severity:    SeverityWarn,
+	Severity:    SeverityMedium,
 	Description: "kubelet read-only port (default: 10255) is enabled. This port exposes metrics and node information without authentication.",
 	Remediation: "Set --read-only-port=0 in kubelet configuration. In KubeletConfiguration YAML: readOnlyPort: 0",
 	Check: func(values map[string]string) *Finding {
