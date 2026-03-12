@@ -66,13 +66,35 @@ type AuditOperation struct {
 // FindLevel returns the Level that would be applied to the given operation,
 // following Kubernetes AuditPolicy first-match semantics.
 func (p *Policy) FindLevel(op AuditOperation) Level {
-	for _, rule := range p.Rules {
+	l, _ := p.FindLevelWithIndex(op)
+	return l
+}
+
+// FindLevelWithIndex returns the Level and the 0-based index of the matching rule.
+// Returns (LevelNone, -1) if no rule matched.
+func (p *Policy) FindLevelWithIndex(op AuditOperation) (Level, int) {
+	for i, rule := range p.Rules {
 		if ruleMatches(rule, op) {
-			return rule.Level
+			return rule.Level, i
 		}
 	}
-	// No rule matched → default is None
-	return LevelNone
+	return LevelNone, -1
+}
+
+// IsBroadSuppressor returns true if the rule at index i is a broadly-suppressing
+// None rule (no specific resource, user, or verb constraints) that could shadow
+// specific security rules placed after it.
+func (p *Policy) IsBroadSuppressor(i int) bool {
+	if i < 0 || i >= len(p.Rules) {
+		return false
+	}
+	r := p.Rules[i]
+	return r.Level == LevelNone &&
+		len(r.Resources) == 0 &&
+		len(r.Users) == 0 &&
+		len(r.UserGroups) == 0 &&
+		len(r.Verbs) == 0 &&
+		len(r.Namespaces) == 0
 }
 
 func ruleMatches(rule PolicyRule, op AuditOperation) bool {

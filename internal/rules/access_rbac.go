@@ -19,11 +19,37 @@ type AccessRule struct {
 
 // AccessFinding is produced by an AccessRule.
 type AccessFinding struct {
-	Rule    *AccessRule
-	Subject string // who has the dangerous permission
-	Detail  string // role/binding name
-	Actual  string
-	Message string
+	Rule             *AccessRule
+	Subject          string    // who has the dangerous permission
+	Detail           string    // role/binding name
+	Actual           string
+	Message          string
+	SeverityOverride *Severity // if non-nil, overrides Rule.Severity for this finding
+}
+
+// EffectiveSeverity returns SeverityOverride if set, otherwise Rule.Severity.
+func (f *AccessFinding) EffectiveSeverity() Severity {
+	if f.SeverityOverride != nil {
+		return *f.SeverityOverride
+	}
+	return f.Rule.Severity
+}
+
+// dangerousSubjects are groups that effectively grant access to all or most users in the cluster.
+var dangerousSubjects = map[string]bool{
+	"system:authenticated":   true,
+	"system:unauthenticated": true,
+	"system:serviceaccounts": true,
+}
+
+// hasDangerousSubject returns true if any subject is a broad system group.
+func hasDangerousSubject(subjects []access.Subject) bool {
+	for _, s := range subjects {
+		if s.Kind == "Group" && dangerousSubjects[s.Name] {
+			return true
+		}
+	}
+	return false
 }
 
 // AccessResult holds all access control findings.
@@ -44,16 +70,26 @@ var ruleRBACNodeProxy = AccessRule{
 	Check: func(info *access.ClusterAccessInfo) []*AccessFinding {
 		var findings []*AccessFinding
 		for _, b := range info.NodeProxyBindings {
+			// cluster-admin and built-in system: roles are expected to have this permission.
+			if b.RoleName == "cluster-admin" || strings.HasPrefix(b.RoleName, "system:") {
+				continue
+			}
 			subjects := access.FormatSubjects(b.Subjects)
 			if subjects == "" {
 				subjects = "(no subjects)"
 			}
-			findings = append(findings, &AccessFinding{
+			f := &AccessFinding{
 				Subject: subjects,
 				Detail:  fmt.Sprintf("%s/%s", b.RoleKind, b.RoleName),
 				Actual:  strings.Join(b.Verbs, ",") + " on nodes/proxy",
 				Message: fmt.Sprintf("ClusterRole '%s' grants nodes/proxy to: %s", b.RoleName, subjects),
-			})
+			}
+			if hasDangerousSubject(b.Subjects) {
+				sev := SeverityCritical
+				f.SeverityOverride = &sev
+				f.Message += " [ESCALATED: broad system group has cluster-wide node access]"
+			}
+			findings = append(findings, f)
 		}
 		return findings
 	},
@@ -73,16 +109,26 @@ var ruleRBACPodExec = AccessRule{
 			if subjects == "" {
 				subjects = "(no subjects)"
 			}
-			// Skip cluster-admin (expected to have all permissions)
-			if b.RoleName == "cluster-admin" {
+			// cluster-admin and built-in system: roles are expected to have this permission.
+			if b.RoleName == "cluster-admin" || strings.HasPrefix(b.RoleName, "system:") {
 				continue
 			}
-			findings = append(findings, &AccessFinding{
+			scope := "cluster-scoped"
+			if b.Namespace != "" {
+				scope = fmt.Sprintf("namespace %s", b.Namespace)
+			}
+			f := &AccessFinding{
 				Subject: subjects,
-				Detail:  fmt.Sprintf("%s/%s", b.RoleKind, b.RoleName),
+				Detail:  fmt.Sprintf("%s/%s (%s)", b.RoleKind, b.RoleName, scope),
 				Actual:  strings.Join(b.Verbs, ",") + " on pods/exec",
-				Message: fmt.Sprintf("ClusterRole '%s' grants pods/exec to: %s", b.RoleName, subjects),
-			})
+				Message: fmt.Sprintf("%s '%s' grants pods/exec in %s to: %s", b.RoleKind, b.RoleName, scope, subjects),
+			}
+			if hasDangerousSubject(b.Subjects) {
+				sev := SeverityCritical
+				f.SeverityOverride = &sev
+				f.Message += " [ESCALATED: broad system group can exec into any pod]"
+			}
+			findings = append(findings, f)
 		}
 		return findings
 	},
@@ -99,6 +145,12 @@ var ruleHostPIDPods = AccessRule{
 		var findings []*AccessFinding
 		for _, pod := range info.RiskyPods {
 			if !pod.HostPID && !pod.HostNetwork && !pod.HostIPC {
+				continue
+			}
+			// System namespaces (kube-system, kube-public, kube-node-lease) routinely
+			// run DaemonSets with host namespaces (kube-proxy, CNI plugins, etc.).
+			// These are expected and would generate constant noise.
+			if pod.IsSystemNamespace {
 				continue
 			}
 			var flags []string
@@ -135,6 +187,11 @@ var rulePrivilegedPods = AccessRule{
 			if !pod.Privileged && len(pod.HostPaths) == 0 {
 				continue
 			}
+			// System namespaces routinely run privileged DaemonSets (storage drivers,
+			// monitoring agents, CNI plugins). Skip to avoid constant noise.
+			if pod.IsSystemNamespace {
+				continue
+			}
 			var details []string
 			if pod.Privileged {
 				details = append(details, fmt.Sprintf("container %s is privileged", pod.ContainerName))
@@ -153,13 +210,52 @@ var rulePrivilegedPods = AccessRule{
 	},
 }
 
-// AllAccessRules returns all access control rules (NV3301–NV3304).
+// NV3305: pod with both hostPID (or hostNetwork) and privileged=true — complete node escape
+var ruleNodeEscapeChain = AccessRule{
+	ID:          "NV3305",
+	Title:       "Node escape chain: hostPID/hostNetwork + privileged container",
+	Severity:    SeverityCritical,
+	Description: "A pod combines hostPID or hostNetwork with a privileged container. This combination provides complete access to the node's process tree and filesystem, enabling a full node compromise.",
+	Remediation: "Remove privileged:true and hostPID/hostNetwork from the pod spec. Use PodSecurity admission (Restricted policy) to prevent this combination cluster-wide.",
+	Check: func(info *access.ClusterAccessInfo) []*AccessFinding {
+		var findings []*AccessFinding
+		for _, pod := range info.RiskyPods {
+			if !pod.Privileged {
+				continue
+			}
+			if !pod.HostPID && !pod.HostNetwork {
+				continue
+			}
+			if pod.IsSystemNamespace {
+				continue
+			}
+			var flags []string
+			if pod.HostPID {
+				flags = append(flags, "hostPID")
+			}
+			if pod.HostNetwork {
+				flags = append(flags, "hostNetwork")
+			}
+			combo := strings.Join(flags, "+") + "+privileged"
+			findings = append(findings, &AccessFinding{
+				Subject: fmt.Sprintf("%s/%s", pod.Namespace, pod.PodName),
+				Detail:  combo,
+				Actual:  combo + "=true",
+				Message: fmt.Sprintf("pod %s/%s: %s combination enables complete node compromise", pod.Namespace, pod.PodName, combo),
+			})
+		}
+		return findings
+	},
+}
+
+// AllAccessRules returns all access control rules (NV3301–NV3305).
 func AllAccessRules() []AccessRule {
 	all := []AccessRule{
 		ruleRBACNodeProxy,
 		ruleRBACPodExec,
 		ruleHostPIDPods,
 		rulePrivilegedPods,
+		ruleNodeEscapeChain,
 	}
 	for i := range all {
 		r := &all[i]

@@ -92,9 +92,15 @@ func runAudit(cmd *cobra.Command, args []string) error {
 		fmt.Fprintf(os.Stderr, "=== AuditPolicy: %s ===\n", auditFlagPolicyFile)
 		c := &checker.AuditPolicyChecker{Rules: rules.AllAuditPolicyRules()}
 		result := c.Run(policy)
-		renderer := render.NewAuditRenderer(os.Stdout)
-		if err := renderer.RenderAudit(result); err != nil {
-			return err
+		if OutputFormat == "json" {
+			if err := render.WriteAuditJSON(os.Stdout, result); err != nil {
+				return err
+			}
+		} else {
+			renderer := render.NewAuditRenderer(os.Stdout)
+			if err := renderer.RenderAudit(result); err != nil {
+				return err
+			}
 		}
 		totalErrors += result.Errors
 		totalWarnings += result.Warnings

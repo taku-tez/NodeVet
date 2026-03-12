@@ -24,7 +24,7 @@ func (c *NodeChecker) RunNodes(nodes []*node.NodeInfo) *rules.NodeResult {
 			f := r.Check(n)
 			if f != nil {
 				result.Findings = append(result.Findings, f)
-				if rules.SeverityIsHighOrAbove(r.Severity) {
+				if rules.SeverityIsHighOrAbove(f.EffectiveSeverity()) {
 					result.Errors++
 				} else {
 					result.Warnings++

@@ -29,21 +29,22 @@ func (r *auditTableRenderer) RenderAudit(result *rules.AuditPolicyResult) error 
 	}
 
 	table := tablewriter.NewWriter(r.w)
-	table.Header("RULE", "SEV", "GAP", "ACTUAL LEVEL", "MESSAGE")
+	table.Header("RULE", "SEV", "GAP", "ACTUAL LEVEL", "MESSAGE", "REMEDIATION")
 
 	isTerminal := isTerminalOutput(r.w)
 
 	for _, f := range result.Findings {
 		id := f.Rule.ID
 		sev := string(f.Rule.Severity)
-		msg := wrapString(f.Message, 55)
-		gap := wrapString(f.Gap, 35)
+		msg := wrapString(f.Message, 45)
+		gap := wrapString(f.Gap, 30)
+		remediation := wrapString(f.Rule.Remediation, 40)
 
 		if isTerminal {
 			id, sev = colorBySeverity(f.Rule.Severity, id, sev)
 		}
 
-		if err := table.Append([]string{id, sev, gap, f.Actual, msg}); err != nil {
+		if err := table.Append([]string{id, sev, gap, f.Actual, msg, remediation}); err != nil {
 			return fmt.Errorf("table append: %w", err)
 		}
 	}

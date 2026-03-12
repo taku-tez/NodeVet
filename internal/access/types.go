@@ -17,16 +17,25 @@ type Subject struct {
 	Namespace string // for ServiceAccount
 }
 
+// SystemNamespaces is the set of Kubernetes system namespaces whose pods are
+// expected to use privileged settings (hostNetwork, hostPID, etc.).
+var SystemNamespaces = map[string]bool{
+	"kube-system":      true,
+	"kube-public":      true,
+	"kube-node-lease":  true,
+}
+
 // PodRisk represents a running pod with a dangerous security configuration.
 type PodRisk struct {
-	Namespace     string
-	PodName       string
-	ContainerName string
-	HostPID       bool
-	HostNetwork   bool
-	HostIPC       bool
-	Privileged    bool
-	HostPaths     []string // sensitive hostPath mounts
+	Namespace         string
+	PodName           string
+	ContainerName     string
+	HostPID           bool
+	HostNetwork       bool
+	HostIPC           bool
+	Privileged        bool
+	HostPaths         []string // sensitive hostPath mounts
+	IsSystemNamespace bool     // true for kube-system / kube-public / kube-node-lease
 }
 
 // SensitiveHostPaths is the set of host paths that represent high-risk mounts.

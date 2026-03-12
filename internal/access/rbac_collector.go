@@ -35,22 +35,23 @@ func buildClientset(kubeconfigPath, kubeContext string) (*kubernetes.Clientset, 
 	return kubernetes.NewForConfig(cfg)
 }
 
-// CollectRBACRisks scans ClusterRoles and Roles for dangerous bindings.
+// CollectRBACRisks scans ClusterRoles, Roles, and their bindings for dangerous permissions.
+// Returns (nodeProxyBindings, podExecBindings, error).
+// podExecBindings includes both cluster-scoped ClusterRoleBindings and namespace-scoped RoleBindings.
 func (c *RBACCollector) CollectRBACRisks(ctx context.Context) ([]RBACBinding, []RBACBinding, error) {
 	cs, err := buildClientset(c.KubeconfigPath, c.Context)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	// Collect ClusterRoles
+	// --- ClusterRoles ---
 	crList, err := cs.RbacV1().ClusterRoles().List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return nil, nil, fmt.Errorf("listing ClusterRoles: %w", err)
 	}
 
-	// Map role name → dangerous verbs/resources
-	nodeProxyRoles := map[string][]string{}   // roleName → verbs
-	podExecRoles := map[string][]string{}
+	nodeProxyRoles := map[string][]string{} // clusterRoleName → verbs
+	podExecRoles := map[string][]string{}   // clusterRoleName → verbs
 
 	for _, cr := range crList.Items {
 		for _, rule := range cr.Rules {
@@ -63,18 +64,32 @@ func (c *RBACCollector) CollectRBACRisks(ctx context.Context) ([]RBACBinding, []
 		}
 	}
 
-	// Get bindings for dangerous roles
-	crbList, err := cs.RbacV1().ClusterRoleBindings().List(ctx, metav1.ListOptions{})
+	// --- Namespace-scoped Roles ---
+	// key: "namespace/roleName" → verbs
+	namespacedPodExecRoles := map[string][]string{}
+	roleList, err := cs.RbacV1().Roles("").List(ctx, metav1.ListOptions{})
 	if err != nil {
-		return nil, nil, fmt.Errorf("listing ClusterRoleBindings: %w", err)
+		return nil, nil, fmt.Errorf("listing Roles: %w", err)
+	}
+	for _, r := range roleList.Items {
+		for _, rule := range r.Rules {
+			if ruleGrantsPodExec(rule) {
+				key := r.Namespace + "/" + r.Name
+				namespacedPodExecRoles[key] = rule.Verbs
+			}
+		}
 	}
 
 	var nodeProxyBindings, podExecBindings []RBACBinding
 
+	// --- ClusterRoleBindings (cluster-scoped) ---
+	crbList, err := cs.RbacV1().ClusterRoleBindings().List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return nil, nil, fmt.Errorf("listing ClusterRoleBindings: %w", err)
+	}
 	for _, crb := range crbList.Items {
 		roleName := crb.RoleRef.Name
 		subjects := convertSubjects(crb.Subjects)
-
 		if verbs, ok := nodeProxyRoles[roleName]; ok {
 			nodeProxyBindings = append(nodeProxyBindings, RBACBinding{
 				RoleKind:  "ClusterRole",
@@ -94,6 +109,42 @@ func (c *RBACCollector) CollectRBACRisks(ctx context.Context) ([]RBACBinding, []
 				Resources: []string{"pods/exec", "pods/attach"},
 				Subjects:  subjects,
 			})
+		}
+	}
+
+	// --- RoleBindings (namespace-scoped) ---
+	// A RoleBinding may reference either a ClusterRole or a namespace Role.
+	rbList, err := cs.RbacV1().RoleBindings("").List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return nil, nil, fmt.Errorf("listing RoleBindings: %w", err)
+	}
+	for _, rb := range rbList.Items {
+		subjects := convertSubjects(rb.Subjects)
+		switch rb.RoleRef.Kind {
+		case "ClusterRole":
+			// RoleBinding references a ClusterRole — scoped to rb.Namespace
+			if verbs, ok := podExecRoles[rb.RoleRef.Name]; ok {
+				podExecBindings = append(podExecBindings, RBACBinding{
+					RoleKind:  "ClusterRole",
+					RoleName:  rb.RoleRef.Name,
+					Namespace: rb.Namespace,
+					Verbs:     verbs,
+					Resources: []string{"pods/exec", "pods/attach"},
+					Subjects:  subjects,
+				})
+			}
+		case "Role":
+			key := rb.Namespace + "/" + rb.RoleRef.Name
+			if verbs, ok := namespacedPodExecRoles[key]; ok {
+				podExecBindings = append(podExecBindings, RBACBinding{
+					RoleKind:  "Role",
+					RoleName:  rb.RoleRef.Name,
+					Namespace: rb.Namespace,
+					Verbs:     verbs,
+					Resources: []string{"pods/exec", "pods/attach"},
+					Subjects:  subjects,
+				})
+			}
 		}
 	}
 

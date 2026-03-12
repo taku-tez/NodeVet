@@ -3,6 +3,7 @@ package cli
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/NodeVet/nodevet/internal/checker"
 	"github.com/NodeVet/nodevet/internal/render"
@@ -43,13 +44,14 @@ func init() {
 }
 
 func runCheck(cmd *cobra.Command, args []string) error {
-	var sources []source.ConfigSource
+	var staticSources []source.ConfigSource
+	var liveSource source.ConfigSource
 
 	if flagConfigFile != "" {
-		sources = append(sources, source.NewYAMLSource(flagConfigFile))
+		staticSources = append(staticSources, source.NewYAMLSource(flagConfigFile))
 	}
 	if flagFlagsStr != "" {
-		sources = append(sources, source.NewFlagSource(flagFlagsStr))
+		staticSources = append(staticSources, source.NewFlagSource(flagFlagsStr))
 	}
 	if flagNodeName != "" {
 		kc := flagKubeconfig
@@ -57,15 +59,22 @@ func runCheck(cmd *cobra.Command, args []string) error {
 			home, _ := os.UserHomeDir()
 			kc = home + "/.kube/config"
 		}
-		sources = append(sources, source.NewConfigzSource(flagNodeName, kc))
+		liveSource = source.NewConfigzSource(flagNodeName, kc)
 	}
 
-	if len(sources) == 0 {
+	allSources := append(staticSources, func() []source.ConfigSource {
+		if liveSource != nil {
+			return []source.ConfigSource{liveSource}
+		}
+		return nil
+	}()...)
+
+	if len(allSources) == 0 {
 		return fmt.Errorf("no input source specified; use --config, --flags, or --node")
 	}
 
 	c := &checker.Checker{
-		Sources: sources,
+		Sources: allSources,
 		Rules:   rules.All(),
 	}
 
@@ -85,6 +94,23 @@ func runCheck(cmd *cobra.Command, args []string) error {
 		}
 	}
 
+	// Configz vs static discrepancy check: only when both static and live sources are present.
+	if len(staticSources) > 0 && liveSource != nil {
+		if discrepancies, dErr := runDiscrepancyCheck(staticSources, liveSource); dErr != nil {
+			fmt.Fprintf(os.Stderr, "warning: discrepancy check failed: %v\n", dErr)
+		} else if len(discrepancies) > 0 {
+			fmt.Fprintln(os.Stderr, "\n=== Config Drift Detected (static vs live) ===")
+			fmt.Fprintf(os.Stderr, "%-30s  %-20s  %-20s\n", "KEY", "STATIC (desired)", "LIVE (running)")
+			fmt.Fprintf(os.Stderr, "%s\n", strings.Repeat("-", 75))
+			for _, d := range discrepancies {
+				fmt.Fprintf(os.Stderr, "%-30s  %-20s  %-20s  [CRITICAL: config drift]\n",
+					d.Key, d.StaticValue, d.LiveValue)
+			}
+			// Count as errors
+			result.Errors += len(discrepancies)
+		}
+	}
+
 	// Exit codes: 0=clean, 1=errors, 2=warnings only
 	if result.Errors > 0 {
 		os.Exit(1)
@@ -93,4 +119,21 @@ func runCheck(cmd *cobra.Command, args []string) error {
 		os.Exit(2)
 	}
 	return nil
+}
+
+// runDiscrepancyCheck loads static sources and live source, then compares them.
+func runDiscrepancyCheck(staticSources []source.ConfigSource, live source.ConfigSource) ([]source.Discrepancy, error) {
+	var staticMaps []map[string]string
+	for _, s := range staticSources {
+		m, err := s.Load()
+		if err != nil {
+			return nil, fmt.Errorf("loading %s: %w", s.SourceName(), err)
+		}
+		staticMaps = append(staticMaps, m)
+	}
+	liveMap, err := live.Load()
+	if err != nil {
+		return nil, fmt.Errorf("loading %s: %w", live.SourceName(), err)
+	}
+	return source.FindDiscrepancies(source.Merge(staticMaps...), liveMap), nil
 }

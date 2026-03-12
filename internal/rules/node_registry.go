@@ -5,10 +5,14 @@ import "github.com/NodeVet/nodevet/internal/node"
 // AllNodeRules returns all registered node-level rules.
 func AllNodeRules() []NodeRule {
 	all := []NodeRule{
-		// Node Conditions (NV3xxx)
+		// Node Conditions (NV3001–NV3003)
 		ruleNodeReady,
 		ruleNodeMemoryPressure,
 		ruleNodeDiskPressure,
+		// Version staleness (NV7001–NV7003)
+		ruleK8sVersionStaleness,
+		ruleContainerdCVE,
+		ruleKernelCVE,
 		// GKE (NV4001–NV4006)
 		ruleGKEIntegrityMonitoring,
 		ruleGKESecureBoot,

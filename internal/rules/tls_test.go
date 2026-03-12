@@ -1,6 +1,9 @@
 package rules
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func TestTLSCertFile(t *testing.T) {
 	rule := ruleTLSCertFile
@@ -51,26 +54,45 @@ func TestTLSPrivateKeyFile(t *testing.T) {
 func TestTLSCipherSuites(t *testing.T) {
 	rule := ruleTLSCipherSuites
 	tests := []struct {
-		name    string
-		values  map[string]string
-		wantHit bool
+		name        string
+		values      map[string]string
+		wantHit     bool
+		wantInsecure bool // message should mention "known-insecure"
 	}{
-		{"absent", map[string]string{}, true},
+		{"absent", map[string]string{}, true, false},
 		{"safe ciphers only", map[string]string{
 			"tls-cipher-suites": "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
-		}, false},
-		{"includes unsafe cipher", map[string]string{
+		}, false, false},
+		{"known-insecure RC4 cipher", map[string]string{
 			"tls-cipher-suites": "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_RSA_WITH_RC4_128_SHA",
-		}, true},
+		}, true, true},
+		{"known-insecure 3DES cipher", map[string]string{
+			"tls-cipher-suites": "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_RSA_WITH_3DES_EDE_CBC_SHA",
+		}, true, true},
+		{"unrecognized (not known-insecure)", map[string]string{
+			"tls-cipher-suites": "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_UNKNOWN_CIPHER",
+		}, true, false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			f := rule.Check(tt.values)
 			if tt.wantHit && f == nil {
 				t.Error("expected finding, got nil")
+				return
 			}
 			if !tt.wantHit && f != nil {
 				t.Errorf("unexpected finding: %s", f.Message)
+				return
+			}
+			if tt.wantHit && tt.wantInsecure {
+				if !strings.Contains(f.Message, "known-insecure") {
+					t.Errorf("expected 'known-insecure' in message, got: %s", f.Message)
+				}
+			}
+			if tt.wantHit && !tt.wantInsecure && f != nil {
+				if strings.Contains(f.Message, "known-insecure") {
+					t.Errorf("unexpected 'known-insecure' in message for unrecognized cipher: %s", f.Message)
+				}
 			}
 		})
 	}

@@ -17,10 +17,19 @@ type NodeRule struct {
 
 // NodeFinding is produced when a NodeRule detects a problem.
 type NodeFinding struct {
-	Rule    *NodeRule
-	Node    string
-	Actual  string
-	Message string
+	Rule             *NodeRule
+	Node             string
+	Actual           string
+	Message          string
+	SeverityOverride *Severity // when set, overrides Rule.Severity for display and counting
+}
+
+// EffectiveSeverity returns the override severity if set, otherwise the rule's severity.
+func (f *NodeFinding) EffectiveSeverity() Severity {
+	if f.SeverityOverride != nil {
+		return *f.SeverityOverride
+	}
+	return f.Rule.Severity
 }
 
 // NodeResult holds findings for a set of nodes.

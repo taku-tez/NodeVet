@@ -29,21 +29,22 @@ func (r *ebpfTableRenderer) RenderEBPF(result *rules.EBPFResult) error {
 	}
 
 	table := tablewriter.NewWriter(r.w)
-	table.Header("RULE", "SEV", "ACTUAL", "MESSAGE")
+	table.Header("RULE", "SEV", "ACTUAL", "MESSAGE", "REMEDIATION")
 
 	isTerminal := isTerminalOutput(r.w)
 
 	for _, f := range result.Findings {
 		id := f.Rule.ID
 		sev := string(f.Rule.Severity)
-		actual := wrapString(f.Actual, 30)
-		msg := wrapString(f.Message, 60)
+		actual := wrapString(f.Actual, 25)
+		msg := wrapString(f.Message, 50)
+		remediation := wrapString(f.Rule.Remediation, 40)
 
 		if isTerminal {
 			id, sev = colorBySeverity(f.Rule.Severity, id, sev)
 		}
 
-		if err := table.Append([]string{id, sev, actual, msg}); err != nil {
+		if err := table.Append([]string{id, sev, actual, msg, remediation}); err != nil {
 			return fmt.Errorf("table append: %w", err)
 		}
 	}

@@ -17,3 +17,32 @@ func Merge(maps ...map[string]string) map[string]string {
 	}
 	return result
 }
+
+// Discrepancy describes a key where the static (desired) config and the live
+// (running) config disagree. This may indicate a misconfiguration drift or a
+// config reload failure.
+type Discrepancy struct {
+	Key         string
+	StaticValue string // value from YAML / flag sources
+	LiveValue   string // value from configz (running kubelet)
+}
+
+// FindDiscrepancies compares static (desired) and live (running) config maps.
+// Returns entries where both maps have a value for the same key but the values differ.
+func FindDiscrepancies(static, live map[string]string) []Discrepancy {
+	var result []Discrepancy
+	for key, liveVal := range live {
+		staticVal, ok := static[key]
+		if !ok {
+			continue // key only in live — not a discrepancy, just extra info
+		}
+		if staticVal != liveVal {
+			result = append(result, Discrepancy{
+				Key:         key,
+				StaticValue: staticVal,
+				LiveValue:   liveVal,
+			})
+		}
+	}
+	return result
+}

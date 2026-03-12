@@ -8,6 +8,7 @@ import (
 	"github.com/olekukonko/tablewriter"
 )
 
+
 // AccessRenderer renders an AccessResult.
 type AccessRenderer interface {
 	RenderAccess(result *rules.AccessResult) error
@@ -29,22 +30,24 @@ func (r *accessTableRenderer) RenderAccess(result *rules.AccessResult) error {
 	}
 
 	table := tablewriter.NewWriter(r.w)
-	table.Header("RULE", "SEV", "SUBJECT", "DETAIL", "MESSAGE")
+	table.Header("RULE", "SEV", "SUBJECT", "DETAIL", "MESSAGE", "REMEDIATION")
 
 	isTerminal := isTerminalOutput(r.w)
 
 	for _, f := range result.Findings {
 		id := f.Rule.ID
-		sev := string(f.Rule.Severity)
-		msg := wrapString(f.Message, 55)
-		subject := wrapString(f.Subject, 35)
-		detail := wrapString(f.Detail, 30)
+		eff := f.EffectiveSeverity()
+		sev := string(eff)
+		msg := wrapString(f.Message, 45)
+		subject := wrapString(f.Subject, 30)
+		detail := wrapString(f.Detail, 25)
+		remediation := wrapString(f.Rule.Remediation, 40)
 
 		if isTerminal {
-			id, sev = colorBySeverity(f.Rule.Severity, id, sev)
+			id, sev = colorBySeverity(eff, id, sev)
 		}
 
-		if err := table.Append([]string{id, sev, subject, detail, msg}); err != nil {
+		if err := table.Append([]string{id, sev, subject, detail, msg, remediation}); err != nil {
 			return fmt.Errorf("table append: %w", err)
 		}
 	}
@@ -53,12 +56,22 @@ func (r *accessTableRenderer) RenderAccess(result *rules.AccessResult) error {
 		return fmt.Errorf("table render: %w", err)
 	}
 
+	// Recount using effective severity (SeverityOverride may have escalated some findings)
+	errors, warnings := 0, 0
+	for _, f := range result.Findings {
+		if rules.SeverityIsHighOrAbove(f.EffectiveSeverity()) {
+			errors++
+		} else {
+			warnings++
+		}
+	}
+
 	summary := fmt.Sprintf("\nSummary: %d critical/high, %d medium/low, %d passed\n",
-		result.Errors, result.Warnings, result.Passed)
+		errors, warnings, result.Passed)
 	if isTerminal {
-		if result.Errors > 0 {
+		if errors > 0 {
 			summary = criticalColor.Sprint(summary)
-		} else if result.Warnings > 0 {
+		} else if warnings > 0 {
 			summary = mediumColor.Sprint(summary)
 		} else {
 			summary = passColor.Sprint(summary)

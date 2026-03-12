@@ -117,9 +117,15 @@ func runAccess(cmd *cobra.Command, args []string) error {
 
 		c := &checker.AccessChecker{Rules: rules.AllAccessRules()}
 		result := c.Run(info)
-		renderer := render.NewAccessRenderer(os.Stdout)
-		if err := renderer.RenderAccess(result); err != nil {
-			return err
+		if OutputFormat == "json" {
+			if err := render.WriteAccessJSON(os.Stdout, result); err != nil {
+				return err
+			}
+		} else {
+			renderer := render.NewAccessRenderer(os.Stdout)
+			if err := renderer.RenderAccess(result); err != nil {
+				return err
+			}
 		}
 		totalErrors += result.Errors
 		totalWarnings += result.Warnings

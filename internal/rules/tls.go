@@ -15,6 +15,32 @@ var safeCipherSuites = map[string]bool{
 	"TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384":   true,
 }
 
+// knownInsecureSuites contains cipher suites with confirmed cryptographic weaknesses.
+// These should be treated as errors, not warnings.
+var knownInsecureSuites = map[string]bool{
+	// RC4: broken stream cipher (BEAST, RC4 biases)
+	"TLS_RSA_WITH_RC4_128_SHA":         true,
+	"TLS_ECDHE_RSA_WITH_RC4_128_SHA":   true,
+	"TLS_ECDHE_ECDSA_WITH_RC4_128_SHA": true,
+	// NULL: no encryption
+	"TLS_RSA_WITH_NULL_SHA":    true,
+	"TLS_RSA_WITH_NULL_SHA256": true,
+	"TLS_RSA_WITH_NULL_MD5":    true,
+	// 3DES: SWEET32 (birthday attack) vulnerability
+	"TLS_RSA_WITH_3DES_EDE_CBC_SHA":       true,
+	"TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA": true,
+	// DES: broken
+	"TLS_RSA_WITH_DES_CBC_SHA": true,
+	// Anonymous: no server authentication
+	"TLS_DH_anon_WITH_AES_128_CBC_SHA":  true,
+	"TLS_DH_anon_WITH_AES_256_CBC_SHA":  true,
+	"TLS_ECDH_anon_WITH_AES_128_CBC_SHA": true,
+	"TLS_ECDH_anon_WITH_AES_256_CBC_SHA": true,
+	// EXPORT: intentionally weakened for export regulations (Logjam, FREAK)
+	"TLS_RSA_EXPORT_WITH_RC4_40_MD5":  true,
+	"TLS_RSA_EXPORT_WITH_DES40_CBC_SHA": true,
+}
+
 // NV1101: tls-cert-file must be set
 var ruleTLSCertFile = Rule{
 	ID:          "NV1101",
@@ -66,20 +92,32 @@ var ruleTLSCipherSuites = Rule{
 				Message: "tls-cipher-suites is not configured; weak ciphers may be allowed by default",
 			}
 		}
-		var unsafe []string
+		var insecure, unrecognized []string
 		for _, suite := range strings.Split(suites, ",") {
 			s := strings.TrimSpace(suite)
-			if s != "" && !safeCipherSuites[s] {
-				unsafe = append(unsafe, s)
+			if s == "" {
+				continue
+			}
+			if knownInsecureSuites[s] {
+				insecure = append(insecure, s)
+			} else if !safeCipherSuites[s] {
+				unrecognized = append(unrecognized, s)
 			}
 		}
-		if len(unsafe) > 0 {
-			return &Finding{
-				Actual:  suites,
-				Message: fmt.Sprintf("unsafe cipher suites detected: %s", strings.Join(unsafe, ", ")),
-			}
+		if len(insecure) == 0 && len(unrecognized) == 0 {
+			return nil
 		}
-		return nil
+		var parts []string
+		if len(insecure) > 0 {
+			parts = append(parts, fmt.Sprintf("known-insecure (RC4/NULL/3DES/EXPORT): %s", strings.Join(insecure, ", ")))
+		}
+		if len(unrecognized) > 0 {
+			parts = append(parts, fmt.Sprintf("not in recommended list: %s", strings.Join(unrecognized, ", ")))
+		}
+		return &Finding{
+			Actual:  suites,
+			Message: strings.Join(parts, "; "),
+		}
 	},
 }
 

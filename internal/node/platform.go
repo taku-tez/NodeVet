@@ -28,6 +28,11 @@ func FromK8sNode(n corev1.Node) *NodeInfo {
 		})
 	}
 
+	// Version info from node status
+	info.KubernetesVersion = n.Status.NodeInfo.KubeletVersion
+	info.KernelVersion = n.Status.NodeInfo.KernelVersion
+	info.ContainerRuntimeVersion = n.Status.NodeInfo.ContainerRuntimeVersion
+
 	// Detect platform and extract provider-specific info
 	info.Platform = detectPlatform(info.Labels)
 	switch info.Platform {

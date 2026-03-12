@@ -65,6 +65,11 @@ type NodeInfo struct {
 	GKE         *GKENodeInfo
 	EKS         *EKSNodeInfo
 	AKS         *AKSNodeInfo
+
+	// Version fields populated from node.Status.NodeInfo
+	KubernetesVersion       string // e.g. "v1.29.3"
+	KernelVersion           string // e.g. "5.15.0-101-generic"
+	ContainerRuntimeVersion string // e.g. "containerd://1.7.9"
 }
 
 // Condition returns the status of a named condition.

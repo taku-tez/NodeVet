@@ -34,11 +34,12 @@ func (c *RBACCollector) CollectPodRisks(ctx context.Context) ([]PodRisk, error) 
 func analyzePod(pod corev1.Pod) *PodRisk {
 	spec := pod.Spec
 	risk := &PodRisk{
-		Namespace: pod.Namespace,
-		PodName:   pod.Name,
-		HostPID:   spec.HostPID,
-		HostNetwork: spec.HostNetwork,
-		HostIPC:   spec.HostIPC,
+		Namespace:         pod.Namespace,
+		PodName:           pod.Name,
+		HostPID:           spec.HostPID,
+		HostNetwork:       spec.HostNetwork,
+		HostIPC:           spec.HostIPC,
+		IsSystemNamespace: SystemNamespaces[pod.Namespace],
 	}
 
 	// Check containers for privileged mode

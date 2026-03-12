@@ -18,10 +18,11 @@ type AuditPolicyRule struct {
 
 // AuditPolicyFinding is produced when an AuditPolicyRule detects a gap.
 type AuditPolicyFinding struct {
-	Rule    *AuditPolicyRule
-	Actual  string
-	Message string
-	Gap     string // description of what is not being logged
+	Rule                *AuditPolicyRule
+	Actual              string
+	Message             string
+	Gap                 string // description of what is not being logged
+	ShadowingRuleIndex  int    // 1-based index of the rule causing the gap (0 = unknown/no match)
 }
 
 // AuditPolicyResult holds all AuditPolicy findings.
@@ -30,6 +31,14 @@ type AuditPolicyResult struct {
 	Passed   int
 	Errors   int
 	Warnings int
+}
+
+// shadowMsg returns a suffix string indicating which rule (1-based) is causing the issue.
+func shadowMsg(idx int) string {
+	if idx >= 0 {
+		return fmt.Sprintf(" (matched by rule #%d)", idx+1)
+	}
+	return " (no matching rule; default is None)"
 }
 
 // NV5101: Secrets must be logged at RequestResponse level
@@ -43,14 +52,16 @@ var ruleAuditSecrets = AuditPolicyRule{
 		ops := []audit.AuditOperation{
 			{Verb: "get", Group: "", Resource: "secrets"},
 			{Verb: "list", Group: "", Resource: "secrets"},
+			{Verb: "watch", Group: "", Resource: "secrets"},
 		}
 		for _, op := range ops {
-			level := policy.FindLevel(op)
+			level, idx := policy.FindLevelWithIndex(op)
 			if !level.AtLeast(audit.LevelRequest) {
 				return &AuditPolicyFinding{
-					Actual:  string(level),
-					Gap:     fmt.Sprintf("secrets/%s", op.Verb),
-					Message: fmt.Sprintf("secrets %s is audited at '%s'; expected at least 'Request'", op.Verb, level),
+					Actual:             string(level),
+					Gap:                fmt.Sprintf("secrets/%s", op.Verb),
+					Message:            fmt.Sprintf("secrets %s is audited at '%s'%s; expected at least 'Request'", op.Verb, level, shadowMsg(idx)),
+					ShadowingRuleIndex: idx + 1,
 				}
 			}
 		}
@@ -67,12 +78,13 @@ var ruleAuditPodExec = AuditPolicyRule{
 	Remediation: "Add a rule: level: Request, resources: [{group: \"\", resources: [\"pods/exec\", \"pods/attach\"]}], verbs: [\"create\", \"get\"]",
 	Check: func(policy *audit.Policy) *AuditPolicyFinding {
 		execOp := audit.AuditOperation{Verb: "create", Group: "", Resource: "pods/exec"}
-		level := policy.FindLevel(execOp)
+		level, idx := policy.FindLevelWithIndex(execOp)
 		if !level.AtLeast(audit.LevelMetadata) {
 			return &AuditPolicyFinding{
-				Actual:  string(level),
-				Gap:     "pods/exec",
-				Message: fmt.Sprintf("pods/exec is audited at '%s'; exec sessions are invisible in audit logs", level),
+				Actual:             string(level),
+				Gap:                "pods/exec",
+				Message:            fmt.Sprintf("pods/exec is audited at '%s'%s; exec sessions are invisible in audit logs", level, shadowMsg(idx)),
+				ShadowingRuleIndex: idx + 1,
 			}
 		}
 		return nil
@@ -88,12 +100,13 @@ var ruleAuditAnonymous = AuditPolicyRule{
 	Remediation: "Add a rule: level: RequestResponse, userGroups: [\"system:anonymous\"]",
 	Check: func(policy *audit.Policy) *AuditPolicyFinding {
 		op := audit.AuditOperation{UserGroup: "system:anonymous", Verb: "get", Resource: "pods"}
-		level := policy.FindLevel(op)
+		level, idx := policy.FindLevelWithIndex(op)
 		if !level.AtLeast(audit.LevelMetadata) {
 			return &AuditPolicyFinding{
-				Actual:  string(level),
-				Gap:     "system:anonymous",
-				Message: fmt.Sprintf("system:anonymous actions are at level '%s'; unauthenticated API access is invisible", level),
+				Actual:             string(level),
+				Gap:                "system:anonymous",
+				Message:            fmt.Sprintf("system:anonymous actions are at level '%s'%s; unauthenticated API access is invisible", level, shadowMsg(idx)),
+				ShadowingRuleIndex: idx + 1,
 			}
 		}
 		return nil
@@ -172,7 +185,33 @@ var ruleAuditWebhookMutations = AuditPolicyRule{
 	},
 }
 
-// AllAuditPolicyRules returns all AuditPolicy completeness rules (NV5101–NV5106).
+// NV5107: broadly-suppressing None rule positioned before critical security rules
+var ruleAuditBroadSuppressor = AuditPolicyRule{
+	ID:          "NV5107",
+	Title:       "AuditPolicy: broadly-suppressing None rule shadows subsequent rules",
+	Severity:    SeverityCritical,
+	Description: "The AuditPolicy contains a level:None rule with no specific constraints (user, resource, verb). Due to first-match semantics, all rules after it are unreachable and will never be evaluated.",
+	Remediation: "Move specific security rules (Secrets, pods/exec, RBAC) before the broad None rule, or replace the broad None with more targeted suppression (e.g. suppress only 'leases' resources).",
+	Check: func(policy *audit.Policy) *AuditPolicyFinding {
+		for i := range policy.Rules {
+			if !policy.IsBroadSuppressor(i) {
+				continue
+			}
+			// Only flag if there are rules after this one (they are unreachable)
+			if i < len(policy.Rules)-1 {
+				return &AuditPolicyFinding{
+					Actual:             fmt.Sprintf("rule #%d: level:None with no constraints", i+1),
+					Gap:                fmt.Sprintf("all rules after position #%d are unreachable", i+1),
+					Message:            fmt.Sprintf("rule #%d is a broadly-suppressing level:None rule; %d subsequent rule(s) are unreachable due to first-match semantics", i+1, len(policy.Rules)-i-1),
+					ShadowingRuleIndex: i + 1,
+				}
+			}
+		}
+		return nil
+	},
+}
+
+// AllAuditPolicyRules returns all AuditPolicy completeness rules (NV5101–NV5107).
 func AllAuditPolicyRules() []AuditPolicyRule {
 	all := []AuditPolicyRule{
 		ruleAuditSecrets,
@@ -181,6 +220,7 @@ func AllAuditPolicyRules() []AuditPolicyRule {
 		ruleAuditCatchAll,
 		ruleAuditRBACMutations,
 		ruleAuditWebhookMutations,
+		ruleAuditBroadSuppressor,
 	}
 	for i := range all {
 		r := &all[i]

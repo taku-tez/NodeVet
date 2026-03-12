@@ -25,4 +25,5 @@ func init() {
 	rootCmd.AddCommand(accessCmd)
 	rootCmd.AddCommand(auditCmd)
 	rootCmd.AddCommand(ebpfCmd)
+	rootCmd.AddCommand(scanCmd)
 }

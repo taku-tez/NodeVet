@@ -35,12 +35,13 @@ func (r *nodeTableRenderer) RenderNodes(result *rules.NodeResult) error {
 
 	for _, f := range result.Findings {
 		id := f.Rule.ID
-		sev := string(f.Rule.Severity)
+		effSev := f.EffectiveSeverity()
+		sev := string(effSev)
 		msg := wrapString(f.Message, 45)
 		remediation := wrapString(f.Rule.Remediation, 45)
 
 		if isTerminal {
-			id, sev = colorBySeverity(f.Rule.Severity, id, sev)
+			id, sev = colorBySeverity(effSev, id, sev)
 		}
 
 		if err := table.Append([]string{id, sev, f.Node, msg, f.Actual, remediation}); err != nil {
